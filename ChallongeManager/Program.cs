@@ -1,35 +1,88 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+//using System.Linq;
 using System.Threading.Tasks;
 using System.Net.Http;
+using Newtonsoft.Json;
+using ChallongeManager.Challonge;
 
 namespace ChallongeManager
 {
     class Program
     {
-        static async Task Main()
-        {
-            using (HttpClient client = new HttpClient())
-            {
-                try
-                {
-                    var response = await client.GetAsync("https://jsonplaceholder.typicode.com/todos/1");
-                    response.EnsureSuccessStatusCode();
-                    string body = await response.Content.ReadAsStringAsync();
+        private static SettingsObject settings;
+        private static readonly HttpClient client = new HttpClient();
 
-                    // string alternatebody = await client.GetStringAsync("https://jsonplaceholder.typicode.com/todos/1");
-                    Console.WriteLine(body);
-                }
-                catch (HttpRequestException ex)
-                {
-                    Console.WriteLine($"Oops, {ex.Message}");
-                }
+        static async Task Main(string[] args)
+        {
+            // First argument will be tournament id
+            // Use -i and -o to indicate input file and output file
+            // One or both of input or output must be included
+            // If input file is included and output is not, overwrite the input file
+            // All these put together is 5 arguments maximum
+            Dictionary<string, string> fileinfo = new Dictionary<string, string>();
+            try
+            {
+                if (args.Length != 3 && args.Length != 5)
+                    throw new ArgumentException();
+                if (args[1] == "-i" || args[1] == "-o")
+                    fileinfo.Add(args[1], args[2]);
+                else
+                    throw new ArgumentException();
+                if (args.Length == 5)
+                    if (args[3] == "-i" || args[3] == "-o")
+                        fileinfo.Add(args[3], args[4]);
+                    else
+                        throw new ArgumentException();
+            }
+            catch (ArgumentException)
+            {
+                Console.WriteLine("Invalid arguments were given. Proper usage:\n" +
+                    "ChallongeManager.exe [tournament url] [file args]\n\n" +
+                    "File argumens:\n" +
+                    "   -i Input file. Should be csv format, " +
+                    "\"Player Name,Rating,Deviation,Volatility\", one player per line. " +
+                    "If omitted will begin all players with default ratings.\n" +
+                    "   -o Output file. If omitted will overwrite input file.");
+                return;
             }
 
+            // Get the settings information for connecting to challonge
+            using (JsonTextReader settingsfile = new JsonTextReader(new System.IO.StreamReader("settings.json")))
+                settings = new JsonSerializer().Deserialize<SettingsObject>(settingsfile);
+
+            GlickoSystem glicko = new GlickoSystem();
+
+            // Get tournament info from challonge
+            Task apitask = GetTourneyInfo(args[0]);
+            // Load players
+            if (fileinfo.ContainsKey("-i"))
+                await glicko.LoadPlayersAsync(fileinfo["-i"]);
+            await apitask;
+
+            // Add games from tournament
+            
             Console.Write("Press any key to continue...");
             Console.ReadKey();
+        }
+
+        private static async Task<Tournament> GetTourneyInfo(string tourney)
+        {
+            Tournament tournament = null;
+            try
+            {
+                string response = await client.GetStringAsync(
+                    $"{settings.ChallongeAPI}/tournaments/{tourney}.json" +
+                    $"?api_key={settings.ChallongeKey}" +
+                    $"&include_participants=1&include_matches=1"
+                );
+                tournament = JsonConvert.DeserializeAnonymousType(response, new { tournament = new Tournament() }).tournament;
+            }
+            catch (HttpRequestException ex)
+            {
+                Console.WriteLine(ex.Message);
+            }
+            return tournament;
         }
     }
 }
