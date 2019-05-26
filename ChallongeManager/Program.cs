@@ -54,14 +54,33 @@ namespace ChallongeManager
             GlickoSystem glicko = new GlickoSystem();
 
             // Get tournament info from challonge
-            Task apitask = GetTourneyInfo(args[0]);
+            Task<Tournament> apitask = GetTourneyInfo(args[0]);
             // Load players
             if (fileinfo.ContainsKey("-i"))
                 await glicko.LoadPlayersAsync(fileinfo["-i"]);
-            await apitask;
+            Tournament tourn = await apitask;
+
+            // Make sure the tournament is complete. The glicko-2 system is intended
+            // to have multiple games per rating period
+            if (tourn.State != TournamentState.Complete)
+            {
+                Console.WriteLine("This tournament isn't completed yet! Try again after it's done.");
+                return;
+            }
+
+            // The rating calculator uses names, so create a dictionary for those
+            Dictionary<int, string> names = new Dictionary<int, string>();
+            foreach (Participant p in tourn.Participants)
+                names.Add(p.Id, p.Name);
 
             // Add games from tournament
-            
+            foreach (Match match in tourn.Matches)
+                glicko.AddGame(names[match.WinnerId], names[match.LoserId]);
+
+            glicko.UpdateRatings();
+            await glicko.WritePlayersAsync(fileinfo["-o"] ?? fileinfo["-i"]);
+
+            client.Dispose();
             Console.Write("Press any key to continue...");
             Console.ReadKey();
         }

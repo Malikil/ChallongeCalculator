@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using Glicko2;
 using System.IO;
+using System.Linq;
 
 namespace ChallongeManager
 {
@@ -42,7 +43,7 @@ namespace ChallongeManager
         {
             using (StreamWriter outfile = new StreamWriter(filename))
             {
-                foreach (string key in playerlist.Keys)
+                foreach (string key in playerlist.Keys.OrderBy(k => k))
                 {
                     Rating player = playerlist[key];
                     await outfile.WriteLineAsync($"{key}," +
@@ -51,6 +52,32 @@ namespace ChallongeManager
                         $"{player.GetVolatility()}");
                 }
             }
+        }
+
+        public void AddGame(string winner, string loser) =>
+            AddGame(winner, loser, false);
+        public void AddDraw(string player1, string player2) =>
+            AddGame(player1, player2, true);
+
+        public void UpdateRatings()
+        {
+            calculator.UpdateRatings(results);
+        }
+
+        // Private methods
+
+        private void AddGame(string winner, string loser, bool isDraw)
+        {
+            // If the players don't already exist, add them
+            if (!playerlist.ContainsKey(winner))
+                playerlist.Add(winner, new Rating(calculator));
+            if (!playerlist.ContainsKey(loser))
+                playerlist.Add(loser, new Rating(calculator));
+
+            if (isDraw)
+                results.AddDraw(playerlist[winner], playerlist[loser]);
+            else
+                results.AddResult(playerlist[winner], playerlist[loser]);
         }
     }
 }
