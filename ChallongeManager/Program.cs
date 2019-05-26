@@ -112,11 +112,13 @@ namespace ChallongeManager
             // Add games from tournament
             foreach (Match match in tourn.Matches)
             {
-                Console.WriteLine($"{names[match.Player1Id]} {match.Score} {names[match.Player2Id]}");
+                if (match.State != TournamentState.Complete)
+                    continue;
+                Console.WriteLine($"{names[(int)match.Player1Id]} {match.Score} {names[(int)match.Player2Id]}");
                 if (match.WinnerId != null)
                     glicko.AddGame(names[(int)match.WinnerId], names[(int)match.LoserId]);
                 else
-                    glicko.AddDraw(names[match.Player1Id], names[match.Player2Id]);
+                    glicko.AddDraw(names[(int)match.Player1Id], names[(int)match.Player2Id]);
             }
 
             Console.WriteLine("Updating ratings");
