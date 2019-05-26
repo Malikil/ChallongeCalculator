@@ -24,6 +24,8 @@ namespace ChallongeManager
             Dictionary<string, string> fileinfo = new Dictionary<string, string>();
             try
             {
+                if (args.Length < 2 || args.Length % 2 == 1)
+                    throw new ArgumentException();
                 for (int i = 0; i < args.Length; i += 2)
                     fileinfo.Add(args[i], args[i + 1]);
                 if (!fileinfo.ContainsKey("-o"))
@@ -97,6 +99,11 @@ namespace ChallongeManager
             foreach (Participant p in tourn.Participants)
             {
                 names.Add(p.Id, p.Name);
+                // If the tournament had a group stage, the players will have
+                // different ids for that stage. Associate those ids with names
+                if (p.GroupIds != null)
+                    foreach (int id in p.GroupIds)
+                        names.Add(id, p.Name);
                 Console.Write($"{p.Name} ");
             }
             Console.WriteLine();
@@ -106,7 +113,10 @@ namespace ChallongeManager
             foreach (Match match in tourn.Matches)
             {
                 Console.WriteLine($"{names[match.Player1Id]} {match.Score} {names[match.Player2Id]}");
-                glicko.AddGame(names[match.WinnerId], names[match.LoserId]);
+                if (match.WinnerId != null)
+                    glicko.AddGame(names[(int)match.WinnerId], names[(int)match.LoserId]);
+                else
+                    glicko.AddDraw(names[match.Player1Id], names[match.Player2Id]);
             }
 
             Console.WriteLine("Updating ratings");
@@ -115,8 +125,7 @@ namespace ChallongeManager
             await glicko.WritePlayersAsync(fileinfo["-o"]);
 
             client.Dispose();
-            Console.Write("All Finished. Press any key to continue...");
-            Console.ReadKey();
+            Console.Write("All Finished.");
         }
 
         private static async Task<Tournament> GetTourneyInfo(string tourney)

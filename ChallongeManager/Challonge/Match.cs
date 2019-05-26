@@ -9,8 +9,8 @@ namespace ChallongeManager.Challonge
         [JsonProperty("state")] public string State { get; set; }
         [JsonProperty("player1_id")] public int Player1Id { get; set; }
         [JsonProperty("player2_id")] public int Player2Id { get; set; }
-        [JsonProperty("winner_id")] public int WinnerId { get; set; }
-        [JsonProperty("loser_id")] public int LoserId { get; set; }
+        [JsonProperty("winner_id")] public int? WinnerId { get; set; }
+        [JsonProperty("loser_id")] public int? LoserId { get; set; }
         [JsonProperty("scores_csv")] public string Score { get; set; }
     }
 }
