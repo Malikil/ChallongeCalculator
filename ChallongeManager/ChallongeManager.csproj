@@ -50,6 +50,7 @@
     <Compile Include="Challonge\Match.cs" />
     <Compile Include="Challonge\Participant.cs" />
     <Compile Include="Challonge\TournamentState.cs" />
+    <Compile Include="Challonge\TournamentType.cs" />
     <Compile Include="Glicko2\Rating.cs" />
     <Compile Include="Glicko2\RatingCalculator.cs" />
     <Compile Include="Glicko2\RatingPeriodResults.cs" />

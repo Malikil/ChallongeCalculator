@@ -88,46 +88,51 @@ namespace ChallongeManager
             // Make sure the tournament is complete. The glicko-2 system is intended
             // to have multiple games per rating period
             if (tourn.State != TournamentState.Complete)
-            {
                 Console.WriteLine("This tournament isn't completed yet! Try again after it's done.");
-                return;
-            }
-
-            // The rating calculator uses names, so create a dictionary for those
-            Console.WriteLine("Players:");
-            Dictionary<int, string> names = new Dictionary<int, string>();
-            foreach (Participant p in tourn.Participants)
+            else if (tourn.TournamentType == TournamentType.FreeForAll)
+                Console.WriteLine("This looks like a Free For All tournament. " +
+                    "Unfortunately only 1v1 matches can be calculated.");
+            else if (tourn.TournamentType == TournamentType.Unrecognized)
+                Console.WriteLine("This type of tournament hasn't been added to the program yet. " +
+                    "Let me know so I can add it.");
+            else
             {
-                names.Add(p.Id, p.Name);
-                // If the tournament had a group stage, the players will have
-                // different ids for that stage. Associate those ids with names
-                if (p.GroupIds != null)
-                    foreach (int id in p.GroupIds)
-                        names.Add(id, p.Name);
-                Console.Write($"{p.Name} ");
+
+                // The rating calculator uses names, so create a dictionary for those
+                Console.WriteLine("Players:");
+                Dictionary<int, string> names = new Dictionary<int, string>();
+                foreach (Participant p in tourn.Participants)
+                {
+                    names.Add(p.Id, p.Name);
+                    // If the tournament had a group stage, the players will have
+                    // different ids for that stage. Associate those ids with names
+                    if (p.GroupIds != null)
+                        foreach (int id in p.GroupIds)
+                            names.Add(id, p.Name);
+                    Console.Write($"{p.Name} ");
+                }
+                Console.WriteLine();
+
+                Console.WriteLine("Adding games:");
+                // Add games from tournament
+                foreach (Match match in tourn.Matches)
+                {
+                    if (match.State != TournamentState.Complete)
+                        continue;
+                    Console.WriteLine($"{names[(int)match.Player1Id]} {match.Score} {names[(int)match.Player2Id]}");
+                    if (match.WinnerId != null)
+                        glicko.AddGame(names[(int)match.WinnerId], names[(int)match.LoserId]);
+                    else
+                        glicko.AddDraw(names[(int)match.Player1Id], names[(int)match.Player2Id]);
+                }
+
+                Console.WriteLine("Updating ratings");
+                glicko.UpdateRatings();
+                Console.WriteLine($"Writing updated scores to {fileinfo["-o"]}");
+                await glicko.WritePlayersAsync(fileinfo["-o"]);
+                Console.Write("All Finished.");
             }
-            Console.WriteLine();
-
-            Console.WriteLine("Adding games:");
-            // Add games from tournament
-            foreach (Match match in tourn.Matches)
-            {
-                if (match.State != TournamentState.Complete)
-                    continue;
-                Console.WriteLine($"{names[(int)match.Player1Id]} {match.Score} {names[(int)match.Player2Id]}");
-                if (match.WinnerId != null)
-                    glicko.AddGame(names[(int)match.WinnerId], names[(int)match.LoserId]);
-                else
-                    glicko.AddDraw(names[(int)match.Player1Id], names[(int)match.Player2Id]);
-            }
-
-            Console.WriteLine("Updating ratings");
-            glicko.UpdateRatings();
-            Console.WriteLine($"Writing updated scores to {fileinfo["-o"]}");
-            await glicko.WritePlayersAsync(fileinfo["-o"]);
-
             client.Dispose();
-            Console.Write("All Finished.");
         }
 
         private static async Task<Tournament> GetTourneyInfo(string tourney)
