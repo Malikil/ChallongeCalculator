@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using System.Net.Http;
 using Newtonsoft.Json;
 using ChallongeManager.Challonge;
+using System.IO;
 
 namespace ChallongeManager
 {
@@ -50,17 +51,34 @@ namespace ChallongeManager
             }
 
             // Get the settings information for connecting to challonge
-            using (JsonTextReader settingsfile = new JsonTextReader(new System.IO.StreamReader("settings.json")))
+            using (JsonTextReader settingsfile = new JsonTextReader(new StreamReader("settings.json")))
                 settings = new JsonSerializer().Deserialize<SettingsObject>(settingsfile);
 
             GlickoSystem glicko = new GlickoSystem();
 
             // Get tournament info from challonge
+            Console.WriteLine($"Finding tournament at https://challonge.com/{args[0]}");
             Task<Tournament> apitask = GetTourneyInfo(args[0]);
             // Load players
-            if (fileinfo.ContainsKey("-i"))
-                await glicko.LoadPlayersAsync(fileinfo["-i"]);
+            try
+            {
+                if (fileinfo.ContainsKey("-i"))
+                {
+                    Console.WriteLine($"Loading players from {fileinfo["-i"]}");
+                    await glicko.LoadPlayersAsync(fileinfo["-i"]);
+                }
+            }
+            catch (FileNotFoundException)
+            {
+                Console.Write("Input file wasn't found or wasn't accessible. Continue anyways? (Y/N) ");
+                string conf;
+                while ((conf = Console.ReadLine().ToUpper()) != "Y"
+                    || conf != "N") ;
+                if (conf == "N")
+                    return;
+            }
             Tournament tourn = await apitask;
+            Console.WriteLine($"Got tournament successfully. Found: {tourn.Name}");
 
             // Make sure the tournament is complete. The glicko-2 system is intended
             // to have multiple games per rating period
@@ -71,19 +89,30 @@ namespace ChallongeManager
             }
 
             // The rating calculator uses names, so create a dictionary for those
+            Console.WriteLine("Players:");
             Dictionary<int, string> names = new Dictionary<int, string>();
             foreach (Participant p in tourn.Participants)
+            {
                 names.Add(p.Id, p.Name);
+                Console.Write($"{p.Name} ");
+            }
+            Console.WriteLine();
 
+            Console.WriteLine("Adding games:");
             // Add games from tournament
             foreach (Match match in tourn.Matches)
+            {
+                Console.WriteLine($"{names[match.Player1Id]} {match.Score} {names[match.Player2Id]}");
                 glicko.AddGame(names[match.WinnerId], names[match.LoserId]);
+            }
 
+            Console.WriteLine("Updating ratings");
             glicko.UpdateRatings();
+            Console.WriteLine($"Writing updated scores to {fileinfo["-o"]}");
             await glicko.WritePlayersAsync(fileinfo["-o"]);
 
             client.Dispose();
-            Console.Write("Press any key to continue...");
+            Console.Write("All Finished. Press any key to continue...");
             Console.ReadKey();
         }
 
