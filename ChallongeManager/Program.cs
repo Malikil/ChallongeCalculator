@@ -24,25 +24,22 @@ namespace ChallongeManager
             Dictionary<string, string> fileinfo = new Dictionary<string, string>();
             try
             {
-                if (args.Length != 3 && args.Length != 5)
-                    throw new ArgumentException();
-                if (args[1] == "-i" || args[1] == "-o")
-                    fileinfo.Add(args[1], args[2]);
-                else
-                    throw new ArgumentException();
-                if (args.Length == 5)
-                    if (args[3] == "-i" || args[3] == "-o")
-                        fileinfo.Add(args[3], args[4]);
-                    else
-                        throw new ArgumentException();
+                for (int i = 0; i < args.Length; i += 2)
+                    fileinfo.Add(args[i], args[i + 1]);
                 if (!fileinfo.ContainsKey("-o"))
                     fileinfo.Add("-o", fileinfo["-i"]);
+                if (!fileinfo.ContainsKey("-t"))
+                    throw new ArgumentException();
             }
-            catch (ArgumentException)
+            catch (Exception ex) when (
+                    ex is ArgumentException ||
+                    ex is IndexOutOfRangeException)
             {
-                Console.WriteLine("Invalid arguments were given. Proper usage:\n" +
-                    "ChallongeManager.exe [tournament url] [file args]\n\n" +
-                    "File argumens:\n" +
+                Console.WriteLine("Invalid arguments were given. " +
+                    "Tournament and output file must be specified:\n" +
+                    "Options:\n" +
+                    "   -t Tournament url. This is the last part of the challonge " +
+                    "url, challonge.com/<this part here>" +
                     "   -i Input file. Should be csv format, " +
                     "\"Player Name,Rating,Deviation,Volatility\", one player per line. " +
                     "If omitted will begin all players with default ratings.\n" +
@@ -57,8 +54,8 @@ namespace ChallongeManager
             GlickoSystem glicko = new GlickoSystem();
 
             // Get tournament info from challonge
-            Console.WriteLine($"Finding tournament at https://challonge.com/{args[0]}");
-            Task<Tournament> apitask = GetTourneyInfo(args[0]);
+            Console.WriteLine($"Finding tournament at https://challonge.com/{fileinfo["-t"]}");
+            Task<Tournament> apitask = GetTourneyInfo(fileinfo["-t"]);
             // Load players
             try
             {
@@ -78,7 +75,13 @@ namespace ChallongeManager
                     return;
             }
             Tournament tourn = await apitask;
-            Console.WriteLine($"Got tournament successfully. Found: {tourn.Name}");
+            if (tourn != null)
+                Console.WriteLine($"Got tournament successfully. Found: {tourn.Name}");
+            else
+            {
+                Console.WriteLine("Couldn't get tournament info.");
+                return;
+            }
 
             // Make sure the tournament is complete. The glicko-2 system is intended
             // to have multiple games per rating period
