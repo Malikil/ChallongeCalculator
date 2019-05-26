@@ -34,6 +34,8 @@ namespace ChallongeManager
                         fileinfo.Add(args[3], args[4]);
                     else
                         throw new ArgumentException();
+                if (!fileinfo.ContainsKey("-o"))
+                    fileinfo.Add("-o", fileinfo["-i"]);
             }
             catch (ArgumentException)
             {
@@ -78,7 +80,7 @@ namespace ChallongeManager
                 glicko.AddGame(names[match.WinnerId], names[match.LoserId]);
 
             glicko.UpdateRatings();
-            await glicko.WritePlayersAsync(fileinfo["-o"] ?? fileinfo["-i"]);
+            await glicko.WritePlayersAsync(fileinfo["-o"]);
 
             client.Dispose();
             Console.Write("Press any key to continue...");
