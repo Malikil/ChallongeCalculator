@@ -37,15 +37,15 @@ namespace ChallongeManager
                     ex is ArgumentException ||
                     ex is IndexOutOfRangeException)
             {
-                Console.WriteLine("Invalid arguments were given. " +
-                    "Tournament and output file must be specified:\n" +
-                    "Options:\n" +
-                    "   -t Tournament url. This is the last part of the challonge " +
-                    "url, challonge.com/<this part here>" +
-                    "   -i Input file. Should be csv format, " +
+                Console.WriteLine("Usage: ChallongeManager.exe [args]");
+                Console.WriteLine();
+                Console.WriteLine("Options:");
+                Console.WriteLine("   -t Tournament url. This is the last part of the " +
+                    "challonge url, challonge.com/<this part here>");
+                Console.WriteLine("   -i Input file. Should be csv format, " +
                     "\"Player Name,Rating,Deviation,Volatility\", one player per line. " +
-                    "If omitted will begin all players with default ratings.\n" +
-                    "   -o Output file. If omitted will overwrite input file.");
+                    "If omitted will begin all players with default ratings.");
+                Console.WriteLine("   -o Output file. If omitted will overwrite input file.");
                 return;
             }
 
