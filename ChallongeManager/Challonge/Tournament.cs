@@ -7,7 +7,10 @@ namespace ChallongeManager.Challonge
         [JsonProperty("id")] public int Id { get; set; }
         [JsonProperty("name")] public string Name { get; set; }
         [JsonProperty("url")] public string Url { get; set; }
-        [JsonProperty("state")] public TournamentState State { get; set; }
+
+        [JsonProperty("state")]
+        [JsonConverter(typeof(TournamentStateConverter))]
+        public TournamentState State { get; set; }
 
         [JsonProperty("tournament_type")]
         [JsonConverter(typeof(TournamentTypeConverter))]
